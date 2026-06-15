@@ -1,0 +1,37 @@
+{
+  "name": "sonexa",
+  "private": false,
+  "version": "2.0.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Sonexa — free open-source music player for Android. Stream from JioSaavn, YouTube (Piped), Archive.org, Jamendo with glassmorphism UI.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xSnipFi/Sonexa.git"
+  },
+  "keywords": ["music-player", "android", "capacitor", "react", "jiosaavn", "streaming", "glassmorphism"],
+  "author": "0xSnipFi",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "android": "vite build && cap sync android && cap open android"
+  },
+  "dependencies": {
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/filesystem": "^6.0.3",
+    "@capacitor/status-bar": "^6.0.2",
+    "hls.js": "^1.6.16",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7"
+  }
+}

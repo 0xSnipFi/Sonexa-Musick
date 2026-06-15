@@ -1,0 +1,533 @@
+/* ============================================================
+   LUMORA — glossy / futuristic music player design system
+   Tokens are driven by Tweaks via inline vars on .lumora-root
+   ============================================================ */
+/* Fonts loaded once in index.html — no duplicate @import here */
+
+.lumora-root {
+  /* defaults — overwritten by tweaks at runtime */
+  --acc-1: #6e56ff;
+  --acc-2: #c15cff;
+  --blur: 30px;
+  --glass-alpha: 0.07;
+  --radius: 30px;
+  --radius-sm: 18px;
+  --radius-card: 22px;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+  --font-dot: 'Doto', 'Space Grotesk', system-ui, sans-serif; /* dot-matrix brand face */
+
+  /* dark theme (default) */
+  --bg-0: #06060c;
+  --bg-1: #15112e;
+  --bg-2: #0a0813;
+  --ink: #f5f2fc;
+  --ink-2: rgba(245,242,252,0.64);
+  --ink-3: rgba(245,242,252,0.40);
+  --ink-4: rgba(245,242,252,0.16);
+  --glass-bg: rgba(255,255,255,var(--glass-alpha));
+  --glass-bg-2: rgba(255,255,255,calc(var(--glass-alpha) * 1.7));
+  --dock-bg: rgba(18,13,30,0.66);
+  --glass-border: rgba(255,255,255,0.14);
+  --glass-border-top: rgba(255,255,255,0.34);
+  --hair: rgba(255,255,255,0.08);
+  --shadow: 0 18px 50px -12px rgba(0,0,0,0.6);
+  --gloss-top: rgba(255,255,255,0.5);
+}
+
+.lumora-root.light {
+  --bg-0: #eae6f7;
+  --bg-1: #f6f0ff;
+  --bg-2: #e3dcf5;
+  --ink: #1b1430;
+  --ink-2: rgba(27,20,48,0.66);
+  --ink-3: rgba(27,20,48,0.45);
+  --ink-4: rgba(27,20,48,0.14);
+  --glass-bg: rgba(255,255,255,calc(0.45 + var(--glass-alpha)));
+  --glass-bg-2: rgba(255,255,255,calc(0.62 + var(--glass-alpha)));
+  --dock-bg: rgba(255,255,255,0.74);
+  --glass-border: rgba(255,255,255,0.7);
+  --glass-border-top: rgba(255,255,255,0.95);
+  --hair: rgba(27,20,48,0.08);
+  --shadow: 0 18px 50px -16px rgba(80,40,140,0.35);
+  --gloss-top: rgba(255,255,255,0.9);
+}
+
+/* AMOLED — true black for OLED displays (pixels switch off) */
+.lumora-root.amoled {
+  --bg-0: #000000;
+  --bg-1: #07030d;
+  --bg-2: #000000;
+  --ink: #f3f0fa;
+  --ink-2: rgba(243,240,250,0.60);
+  --ink-3: rgba(243,240,250,0.36);
+  --ink-4: rgba(243,240,250,0.13);
+  --glass-bg: rgba(255,255,255,calc(var(--glass-alpha) * 0.7));
+  --glass-bg-2: rgba(255,255,255,calc(var(--glass-alpha) * 1.3));
+  --dock-bg: rgba(0,0,0,0.72);
+  --glass-border: rgba(255,255,255,0.10);
+  --glass-border-top: rgba(255,255,255,0.22);
+  --hair: rgba(255,255,255,0.06);
+  --shadow: 0 18px 50px -14px rgba(0,0,0,0.85);
+  --gloss-top: rgba(255,255,255,0.4);
+}
+.lumora-root.amoled { background: #000; }
+.lumora-root.amoled .grain { opacity: 0.28; }
+.lumora-root.amoled .orb { opacity: 0.34; }
+.lumora-root.amoled .dock-scrim { background: linear-gradient(to top, #000 16%, rgba(0,0,0,0.7) 50%, transparent 100%); }
+
+* { box-sizing: border-box; }
+
+.lumora-root {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  font-family: var(--font-body);
+  color: var(--ink);
+  overflow: hidden;
+  background: #06040c; /* Default dark background */
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+  /* Mobile: prevent pull-to-refresh and rubber-banding */
+  overscroll-behavior: none;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Re-enable selection for inputs / text fields */
+.lumora-root input, .lumora-root textarea { user-select: text; -webkit-user-select: text; }
+
+/* GPU layers for actively animated elements only — don't waste GPU memory on static elements */
+.sheet, .orb { will-change: transform; transform: translateZ(0); }
+.tabbar, .mini, .tab-pill { backface-visibility: hidden; }
+
+/* Pause all heavy animations when app is backgrounded (saves battery) */
+.backgrounded .orb, .backgrounded .viz span, .backgrounded .viz-wide span,
+.backgrounded .vinyl, .backgrounded .fab-wrap::before { animation-play-state: paused !important; }
+
+/* Visualizer bars: isolate repaints */
+.viz-wide span, .viz span { contain: layout style; }
+
+/* Now Playing ambient blur: lighter on mobile */
+@media (max-width: 720px) {
+  .np-ambient { filter: blur(28px) saturate(120%) !important; }
+}
+
+/* Tap responsiveness — kill 300ms delay, no double-tap zoom */
+.trow, .chip, .tab, .iconbtn, .tap, .list-row, .modepick > div { touch-action: manipulation; }
+
+/* background fill simplified for emulator compatibility */
+.lumora-root::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  opacity: var(--bg-opacity, 1);
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+}
+
+/* floating background orbs */
+.orbs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+.orbs.off { display: none; }
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(56px);
+  opacity: 0.4;
+  animation: float 16s ease-in-out infinite;
+  contain: strict;
+}
+/* Reduce GPU cost on small screens — heavy blurs murder Android webview FPS */
+@media (max-width: 720px) {
+  .orb { filter: blur(32px); opacity: 0.3; }
+  .glass { backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
+  .iconbtn { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .grain { display: none; } /* film grain is expensive on low-end */
+}
+.light .orb { opacity: 0.34; }
+.orb.o1 { width: 280px; height: 280px; left: -90px; top: 30px;
+  background: radial-gradient(circle at 30% 30%, var(--acc-1), transparent 70%); }
+.orb.o2 { width: 340px; height: 340px; right: -130px; top: 200px;
+  background: radial-gradient(circle at 30% 30%, var(--acc-2), transparent 70%);
+  animation-delay: -5s; opacity: 0.32; }
+.orb.o3 { width: 240px; height: 240px; left: 10px; bottom: 30px;
+  background: radial-gradient(circle at 30% 30%, #2dd4ff, transparent 70%);
+  animation-delay: -9s; opacity: 0.24; }
+@keyframes float {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(24px,-28px) scale(1.08); }
+  66% { transform: translate(-18px,18px) scale(0.96); }
+}
+
+/* glass surface */
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  /* backdrop-filter removed for debugging */
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--glass-border-top);
+}
+.glass-2 { background: var(--glass-bg-2); }
+.glass-sm { border-radius: var(--radius-sm); }
+
+/* Reduce paint cost — isolate glass compositing */
+.glass { contain: layout style; }
+
+/* glossy gradient pill / button */
+.grad {
+  background: linear-gradient(135deg, var(--acc-1), var(--acc-2));
+  position: relative; overflow: hidden;
+}
+.grad::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, var(--gloss-top), transparent 46%);
+  opacity: 0.55; pointer-events: none;
+}
+.grad-text {
+  background: linear-gradient(120deg, var(--acc-1), var(--acc-2));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* layout regions */
+.app-col { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
+.safe-top { height: calc(12px + env(safe-area-inset-top, 46px)); flex-shrink: 0; }
+.scroll {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-y: contain;
+}
+.scroll::-webkit-scrollbar { display: none; }
+.pad { padding: 0 22px; }
+.below-nav { padding-bottom: calc(190px + env(safe-area-inset-bottom, 0px)); }
+
+/* screen header */
+.scr-head { padding: 6px 22px 14px; display: flex; align-items: flex-end; justify-content: space-between; }
+.scr-title { font-family: var(--font-display); font-weight: 800; font-size: 32px; letter-spacing: -0.02em; line-height: 1; }
+.scr-sub { color: var(--ink-2); font-size: 14px; font-weight: 500; margin-top: 7px; }
+
+/* round icon button */
+.iconbtn {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(calc(var(--blur) * 0.6)); -webkit-backdrop-filter: blur(calc(var(--blur) * 0.6));
+  color: var(--ink); cursor: pointer; transition: transform .15s, background .2s;
+  box-shadow: inset 0 1px 0 var(--glass-border-top);
+}
+.iconbtn:active { transform: scale(0.92); }
+
+/* chips */
+.chips { display: flex; gap: 9px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; padding: 9px 17px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+  background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--ink-2);
+  cursor: pointer; white-space: nowrap; transition: .2s; backdrop-filter: blur(10px);
+}
+.chip.on { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--acc-1), var(--acc-2));
+  box-shadow: 0 6px 16px -6px var(--acc-1); }
+.light .chip.on { color: #fff; }
+
+/* cover art */
+.cover { position: relative; overflow: hidden; flex-shrink: 0;
+  box-shadow: 0 10px 28px -10px rgba(0,0,0,0.7); }
+.cover::after { content:''; position:absolute; inset:0; pointer-events: none;
+  background: linear-gradient(150deg, rgba(255,255,255,0.22), transparent 42%); }
+.cover img { transition: opacity .35s ease-in; }
+.shape-rounded { border-radius: 16px; }
+.shape-square { border-radius: 3px; }
+.shape-circle { border-radius: 50%; }
+
+/* track row */
+.trow { display: flex; align-items: center; gap: 13px; padding: 8px 0; cursor: pointer; }
+.trow .meta { flex: 1; min-width: 0; }
+.trow .t { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trow .a { color: var(--ink-2); font-size: 12.5px; font-weight: 500; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* badges */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 8px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--ink-2); }
+.badge.gold { color: #ffd479; border-color: rgba(255,212,121,0.4); background: rgba(255,212,121,0.08); }
+.badge.atmos { color: #7fe3ff; border-color: rgba(127,227,255,0.4); background: rgba(127,227,255,0.08); }
+.badge.lofi { color: #f0a8d0; border-color: rgba(240,168,208,0.4); background: rgba(240,168,208,0.09); }
+
+/* bottom dock scrim — fades scrolling content out behind the controls */
+.dock-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 210px; z-index: 28;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--bg-0) 14%, color-mix(in srgb, var(--bg-0) 70%, transparent) 50%, transparent 100%); }
+.light .dock-scrim { background: linear-gradient(to top, var(--bg-0) 14%, color-mix(in srgb, var(--bg-0) 70%, transparent) 50%, transparent 100%); }
+
+/* bottom tab bar */
+.tabbar {
+  position: absolute; left: 16px; right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  height: 62px; display: flex; align-items: center; justify-content: space-around;
+  border-radius: 24px;
+  background: var(--dock-bg);
+  backdrop-filter: blur(30px) saturate(190%); -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 14px 34px -10px rgba(0,0,0,0.7), inset 0 1px 0 var(--glass-border-top);
+}
+.tab { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;
+  color: var(--ink-3); font-size: 10px; font-weight: 600; transition: color .2s; padding: 6px 10px; }
+.tab.on { color: var(--ink); }
+.tab.on .tab-ico { color: var(--acc-1); }
+
+/* gradient/accent ICON (background-clip:text breaks SVGs, so use solid accent) */
+.ico-acc { color: var(--acc-1); }
+
+/* mini player */
+.mini {
+  position: absolute; left: 16px; right: 16px;
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 29;
+  height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: 17px; cursor: pointer;
+  background: var(--dock-bg);
+  backdrop-filter: blur(30px) saturate(190%); -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 14px 34px -10px rgba(0,0,0,0.7), inset 0 1px 0 var(--glass-border-top);
+  transition: transform .15s ease;
+}
+.mini:active { transform: scale(0.985); }
+.mini .bar { position: absolute; left: 14px; right: 14px; bottom: 4px; height: 2px;
+  border-radius: 2px; background: var(--ink-4); overflow: hidden; }
+.mini .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px;
+  background: linear-gradient(90deg, var(--acc-1), var(--acc-2));
+  transition: width .3s linear; }
+
+/* overlay screens slide up */
+.sheet { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% -10%, var(--bg-1) 0%, var(--bg-0) 62%, var(--bg-2) 100%);
+  /* animation: sheetUp .42s cubic-bezier(.2,.9,.25,1); */ }
+@keyframes sheetUp { from { transform: translateY(101%); } to { transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0.1; } to { opacity: 1; } }
+.screen-fade { animation: fadeIn .35s ease; opacity: 1; }
+
+/* ---------------------------------------------------------------
+   Responsive: phones full-bleed; tablets/desktop center a device
+   frame over the ambient background so the UI never stretches wide.
+   --------------------------------------------------------------- */
+@media (min-width: 720px) {
+  .lumora-root { --frame: 580px; }
+  .app-col { max-width: var(--frame); margin-inline: auto; }
+  .sheet { max-width: var(--frame); margin-inline: auto; left: 0; right: 0; }
+  .tabbar, .mini {
+    left: 50%; right: auto; transform: translateX(-50%);
+    width: calc(var(--frame) - 32px);
+  }
+  .dock-scrim { left: 50%; right: auto; transform: translateX(-50%); width: var(--frame); }
+}
+/* Large tablets / desktop: a touch wider + soft frame edge */
+@media (min-width: 1100px) {
+  .lumora-root { --frame: 620px; }
+  .app-col { box-shadow: 0 0 0 1px var(--hair), 0 40px 120px -30px rgba(0,0,0,0.8); }
+}
+/* Tablet grids breathe a little more */
+@media (min-width: 720px) {
+  .pad { padding-left: 26px; padding-right: 26px; }
+}
+
+/* now playing */
+.np-art { width: 100%; aspect-ratio: 1; position: relative; overflow: hidden;
+  box-shadow: 0 30px 70px -20px rgba(0,0,0,0.8),
+    0 0 60px -15px color-mix(in srgb, var(--acc-1) 40%, transparent);
+  transition: box-shadow .5s ease; }
+.np-art::after { content:''; position:absolute; inset:0; pointer-events: none;
+  background: linear-gradient(155deg, rgba(255,255,255,0.25), transparent 38%); }
+
+/* progress / sliders */
+.track-line { height: 5px; border-radius: 6px; background: var(--ink-4); position: relative; cursor: pointer; }
+.track-line i { position: absolute; left:0; top:0; bottom:0; border-radius: 6px;
+  background: linear-gradient(90deg, var(--acc-1), var(--acc-2)); }
+.track-line b { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transform: translate(-50%,-50%); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+
+/* EQ */
+.eq-band { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
+.eq-slot { width: 6px; height: 150px; border-radius: 6px; background: var(--ink-4);
+  position: relative; cursor: pointer; }
+.eq-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px;
+  background: linear-gradient(0deg, var(--acc-1), var(--acc-2)); }
+.eq-knob { position: absolute; left: 50%; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; transform: translate(-50%,-50%); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+
+/* toggle */
+.sw { width: 50px; height: 30px; border-radius: 999px; padding: 3px; cursor: pointer;
+  background: var(--ink-4); transition: .25s; flex-shrink: 0; }
+.sw.on { background: linear-gradient(135deg, var(--acc-1), var(--acc-2)); }
+.sw i { width: 24px; height: 24px; border-radius: 50%; background: #fff; display: block;
+  transition: .25s; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.sw.on i { transform: translateX(20px); }
+
+/* list card */
+.list-card { padding: 4px 16px; }
+.list-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; cursor: pointer;
+  border-bottom: 1px solid var(--hair); }
+.list-row:last-child { border-bottom: none; }
+.list-row .lr-t { flex: 1; font-weight: 600; font-size: 15px; }
+.list-row .lr-d { color: var(--ink-2); font-size: 14px; font-weight: 500; }
+
+/* analytics bars */
+.abar { flex: 1; border-radius: 6px 6px 3px 3px; background: linear-gradient(0deg, var(--acc-1), var(--acc-2));
+  position: relative; min-height: 6px; }
+.abar.dim { background: var(--ink-4); }
+
+/* seg control */
+.seg { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--glass-bg); border: 1px solid var(--glass-border); }
+.seg button { flex: 1; border: none; background: transparent; color: var(--ink-2); font-family: var(--font-body);
+  font-weight: 600; font-size: 13px; padding: 8px; border-radius: 10px; cursor: pointer; transition: .2s; }
+.seg button.on { color: #fff; background: linear-gradient(135deg, var(--acc-1), var(--acc-2)); }
+
+.dim { color: var(--ink-2); }
+.faint { color: var(--ink-3); }
+
+/* recognition pulse rings */
+.rec-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--acc-1);
+  animation: recpulse 2.4s ease-out infinite; }
+.rec-ring.d2 { animation-delay: .8s; border-color: var(--acc-2); }
+.rec-ring.d3 { animation-delay: 1.6s; }
+@keyframes recpulse { 0% { transform: scale(0.55); opacity: 0.8; } 100% { transform: scale(1.15); opacity: 0; } }
+
+/* stage */
+.stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(130% 100% at 50% 0%, #1a1030 0%, #0a0612 60%, #06040c 100%); overflow: hidden; }
+.device-wrap { transform-origin: center center; }
+
+/* ============ v2 polish ============ */
+
+/* monospace for technical / numeric data (audio specs, time, dB, counts) */
+.mono { font-family: var(--font-mono); letter-spacing: -0.02em; font-feature-settings: "tnum"; }
+
+/* display headings get tighter optical tracking */
+.scr-title, .np-title { font-family: var(--font-display); }
+
+/* film grain — kills the flat digital-gradient look (light on mobile) */
+.grain { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0.22;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px; }
+.light .grain { opacity: 0.14; }
+/* Phones: drop grain entirely — biggest single FPS win on cheap Android */
+@media (max-width: 720px) { .grain { display: none; } }
+/* Aurora hue-rotate is GPU-heavy; disable on phones */
+@media (max-width: 720px) { .orbs { animation: none; } }
+
+/* fine top sheen line that catches the eye on glass cards */
+.glass::before { content: ''; position: absolute; left: 14%; right: 14%; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-border-top), transparent);
+  border-radius: 1px; }
+
+/* audio visualizer — animated bars */
+.viz { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+.viz span { width: 2.5px; border-radius: 2px; background: linear-gradient(0deg, var(--acc-1), var(--acc-2));
+  height: 30%; animation: vizjump 0.9s ease-in-out infinite; transform-origin: bottom; }
+.viz.paused span { animation-play-state: paused; height: 22%; }
+.viz span:nth-child(1){ animation-delay: -0.0s; } .viz span:nth-child(2){ animation-delay: -0.25s; }
+.viz span:nth-child(3){ animation-delay: -0.5s; }  .viz span:nth-child(4){ animation-delay: -0.7s; }
+.viz span:nth-child(5){ animation-delay: -0.15s; } .viz span:nth-child(6){ animation-delay: -0.4s; }
+.viz span:nth-child(7){ animation-delay: -0.6s; }  .viz span:nth-child(8){ animation-delay: -0.85s; }
+.viz span:nth-child(9){ animation-delay: -0.35s; } .viz span:nth-child(10){ animation-delay: -0.55s; }
+.viz span:nth-child(11){ animation-delay: -0.2s; } .viz span:nth-child(12){ animation-delay: -0.75s; }
+@keyframes vizjump { 0%,100% { height: 22%; } 25% { height: 95%; } 50% { height: 45%; } 75% { height: 78%; } }
+
+/* big visualizer bar strip under now-playing art */
+.viz-wide { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+.viz-wide span { flex: 1; border-radius: 3px; background: linear-gradient(0deg, var(--acc-1) 10%, var(--acc-2));
+  height: 30%; opacity: 0.85; animation: vizjump 1.1s ease-in-out infinite; }
+.viz-wide.paused span { animation-play-state: paused; }
+
+/* vinyl spin mode */
+.vinyl-wrap { perspective: 900px; }
+.vinyl { animation: spin 7s linear infinite; }
+.vinyl.paused { animation-play-state: paused; }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.vinyl-hole { position: absolute; top: 50%; left: 50%; width: 16%; height: 16%; transform: translate(-50%,-50%);
+  border-radius: 50%; background: var(--bg-0); box-shadow: 0 0 0 6px rgba(0,0,0,0.35), inset 0 0 8px rgba(0,0,0,0.6); z-index: 3; }
+.vinyl-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); }
+
+/* segmented icon toggle for play modes */
+.modepick { display: flex; gap: 6px; }
+.modepick > div { width: 40px; height: 36px; border-radius: 11px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; color: var(--ink-3);
+  background: var(--glass-bg); border: 1px solid var(--glass-border); transition: .2s; }
+.modepick > div.on { color: #fff; background: linear-gradient(135deg, var(--acc-1), var(--acc-2)); border-color: transparent; }
+
+/* press feedback on tappable cards */
+.tap { transition: transform .14s ease; cursor: pointer; }
+.tap:active { transform: scale(0.975); }
+
+/* ============ premium motion ============ */
+@media (prefers-reduced-motion: no-preference) {
+  /* staggered rise-in for screen sections */
+  .stagger > * { opacity: 0; animation: riseIn .6s cubic-bezier(.2,.85,.25,1) both; }
+  .stagger > *:nth-child(1){ animation-delay: .02s; } .stagger > *:nth-child(2){ animation-delay: .07s; }
+  .stagger > *:nth-child(3){ animation-delay: .12s; }  .stagger > *:nth-child(4){ animation-delay: .17s; }
+  .stagger > *:nth-child(5){ animation-delay: .22s; }  .stagger > *:nth-child(6){ animation-delay: .27s; }
+  .stagger > *:nth-child(7){ animation-delay: .32s; }  .stagger > *:nth-child(8){ animation-delay: .37s; }
+  .stagger > *:nth-child(n+9){ animation-delay: .4s; }
+}
+@keyframes riseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+/* sliding active pill behind tab bar */
+.tab-pill { position: absolute; top: 7px; bottom: 7px; width: 25%; border-radius: 18px; z-index: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--acc-1) 22%, transparent), color-mix(in srgb, var(--acc-2) 22%, transparent));
+  border: 1px solid color-mix(in srgb, var(--acc-1) 30%, transparent);
+  box-shadow: 0 6px 18px -8px var(--acc-1), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: left .42s cubic-bezier(.3,.9,.25,1); }
+.tab { position: relative; z-index: 1; }
+.tab .tab-ico { transition: transform .35s cubic-bezier(.3,1.4,.4,1); }
+.tab.on .tab-ico { transform: translateY(-1px) scale(1.06); }
+
+/* heart pop */
+@keyframes heartPop { 0%{ transform: scale(1);} 35%{ transform: scale(1.42);} 60%{ transform: scale(0.9);} 100%{ transform: scale(1);} }
+.heart-pop { animation: heartPop .42s ease; }
+
+/* play fab pulse ring while playing */
+.fab-wrap { position: relative; }
+.fab-wrap.playing::before { content:''; position:absolute; inset:-6px; border-radius:50%;
+  border: 2px solid color-mix(in srgb, var(--acc-1) 55%, transparent); animation: fabPulse 2.2s ease-out infinite; }
+@keyframes fabPulse { 0%{ transform: scale(0.92); opacity:.7; } 100%{ transform: scale(1.22); opacity:0; } }
+
+/* slow living aurora on the orb layer */
+.orbs { animation: auroraHue 22s ease-in-out infinite alternate; }
+@keyframes auroraHue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(26deg); } }
+
+/* now-playing art entrance */
+.art-in { animation: artIn .55s cubic-bezier(.2,.85,.25,1) both; }
+@keyframes artIn { from { opacity:0; transform: scale(.94) translateY(10px); } to { opacity:1; transform:none; } }
+
+/* sheen sweep across glossy gradient surfaces on mount */
+.grad { isolation: isolate; }
+.grad .sheen { position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:inherit; z-index:2; }
+.grad .sheen::before { content:''; position:absolute; top:-60%; left:-40%; width:45%; height:220%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); transform: rotate(18deg);
+  animation: sweep 1.5s cubic-bezier(.4,0,.2,1) .35s 1 both; }
+@keyframes sweep { from{ left:-45%; } to{ left:135%; } }
+
+/* chip + row press */
+.chip { transition: transform .15s, background .2s, color .2s, border-color .2s; }
+.chip:active { transform: scale(0.94); }
+
+/* refined settings-list leading icon — subtle, monochrome, premium */
+.set-ico { width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; color: var(--ink-2);
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-border-top); transition: color .2s; }
+.list-row:active .set-ico { color: var(--acc-1); }
+
+/* ---- Mobile performance ---- */
+@media (prefers-reduced-motion: reduce) {
+  .orb, .tab-pill, .art-in, .sheen, .screen-fade, .stagger > * { animation: none !important; }
+  .chip:active { transform: none; }
+}
+
+/* Prevent layout thrash from scroll containers */
+.scroll { contain: strict; }
+.screen-fade { contain: layout style; }
+
+/* smoother sheet transitions */
+.sheet { will-change: transform, opacity; backface-visibility: hidden; }
